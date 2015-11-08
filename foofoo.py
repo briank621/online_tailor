@@ -18,9 +18,10 @@ eugene wu 2015
 """
 
 import os
+from functools import wraps
 from sqlalchemy import *
 from sqlalchemy.pool import NullPool
-from flask import Flask, request, render_template, g, redirect, Response
+from flask import Flask, request, render_template, g, redirect, Response, session
 
 tmpl_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'templates')
 app = Flask(__name__, template_folder=tmpl_dir)
@@ -39,7 +40,7 @@ app = Flask(__name__, template_folder=tmpl_dir)
 #
 #     DATABASEURI = "postgresql://ewu2493:foobar@w4111db1.cloudapp.net:5432/proj1part2"
 #
-DATABASEURI = "sqlite:///test.db"
+DATABASEURI = "postgresql://bck2116:354@w4111db1.cloudapp.net:5432/proj1part2"
 
 
 #
@@ -74,6 +75,8 @@ engine.execute("""INSERT INTO test(name) VALUES ('grace hopper'), ('alan turing'
 #
 
 
+app.secret_key = 'G]\xb2kU<\xe7\x12\xd7\xf3y\\\xe4R\x82\xa4Hv\x9e\xab\x81\x8a\x94\xf7'
+
 
 @app.before_request
 def before_request():
@@ -102,34 +105,76 @@ def teardown_request(exception):
   except Exception as e:
     pass
 
-@app.route("/hello/", methods=["POST", "GET"])
-def myfirstappfunction():
+
+#inspired from http://stackoverflow.com/questions/32640090/python-flask-keeping-track-of-user-sessions-how-to-get-session-cookie-id
+def check_login(function):
+  @wraps(function)
+  def wrapper(*args, **kwargs):
+    user_id = session.get('username')
+    if user_id:
+      user=database.get(user_id)
+      if user:
+        #User is logged in
+        return function(*args, **kwargs)
+      else:
+        render_template("index.html", HEADER="Session exists, but user doesn't exist anymore")
+    else:
+      render_template("index.html", HEADER="Please log in")
+
+@check_login
+@app.route("/menu", methods=["POST","GET"])
+def show_menu():
+  print request.args
+  print "session id" + session.get('username')
+  return render_template("menu.html")
+
+
+@app.route("/log-in/", methods=["POST", "GET"])
+def loginfunction():
   print request.args
   print "\n"
 
-  e = dict(TITLE="Your age: " + request.args["age"])
-  d = dict(TITLE="boo")
-  print request.args["name"]
-  print request.args["age"]
-  if int(request.args['age']) < 50:
-    print "I'm in here?"
-    return render_template("index.html", **d)
+  username = request.args["username"]
+  password = request.args["password"]
+  
+  q = "SELECT pwd FROM user_account u WHERE u.username = %s LIMIT 1"
+  cursor = g.conn.execute(q, (username,))
+  real_pass = ""
+  for row in cursor:
+    real_pass = row[0]
+  if(real_pass == password):
+    session['username'] = username
+    return render_template("menu.html", HEADER="Successfully logged in", USER=username)
   else:
-    print "no, I'm here"
-    offset = int(request.args["offset"])
-    #q = "SELECT * FROM test limit 1 OFFSET %s"
-    cursor = g.conn.execute("SELECT * FROM test limit 1 OFFSET %s " % offset)
-    #cursor = g.conn.execute(q, offset)
-    print "I guess it didn't crash yet"
-    s = ""
-    l = []
-    for row in cursor:
-      l.append(row[1])
-      s += str(row[1]) 
-    print s
-    return render_template("index.html", TITLE = s)
-  return render_template("index.html", TITLE="Brian")
+    return render_template("index.html", HEADER="Incorrect username/password")
 
+@app.route("/register/", methods=["POST","GET"])
+def register():
+  return render_template("register.html")
+
+@app.route("/create-account/", methods=["POST","GET"])
+def createacc():
+  print request.args
+  print "\n"
+
+  username = request.args["username"]
+  password = request.args["password"]
+  
+  found = False
+  
+  q = "SELECT pwd FROM user_account u WHERE u.username = %s LIMIT 1"
+  cursor = g.conn.execute(q, (username,))
+  real_pass = ""
+  row = cursor.fetchone()
+  if(not row):
+    print "New registration"
+    i = "INSERT INTO user_account (pwd, username) VALUES (%s, %s)"
+    cursor = g.conn.execute(i, (password, username))
+    return render_template("index.html", HEADER="Successfully registered. Please log-in")
+  else:
+    print "Username exists"
+    return render_template("register.html", HEADER="Username already taken. Please try again")
+  return render_template("index.hmml", HEADER="Account not registered")
 
 #
 # @app.route is a decorator around index() that means:
