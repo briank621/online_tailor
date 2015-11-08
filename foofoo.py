@@ -148,6 +148,23 @@ def loginfunction():
   else:
     return render_template("index.html", HEADER="Incorrect username/password")
 
+@check_login
+@app.route("/logout/", methods=["POST","GET"])
+def log_out():
+  user_id = session.get('username')
+  session.pop(user_id, None)
+  return render_template("index.html", HEADER="Successfully Logged out")
+
+@check_login
+@app.route("/dimensions/", methods=["POST","GET"])
+def list_dimensions():
+   user_id = session.get('username')
+   q = "SELECT waist, neck, torso, leglength FROM dimensions d WHERE d.username = %s"
+   cursor = g.conn.execute(q, (username,))
+   for row in cursor:
+     print row[0]
+     
+
 @app.route("/register/", methods=["POST","GET"])
 def register():
   return render_template("register.html")
