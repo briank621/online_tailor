@@ -1,0 +1,32 @@
+<html>
+  <body>
+
+  <h1><a href="/menu">Online_Tailor</a></h1>
+  <h2>Welcome {{USER}}  </h2>
+  <h3>Dimensions Page </h3>
+
+  <h4>Here are previously inserted dimensions</h4>
+      {% for row in rows %}
+        <h4> Dimension {{loop.index}} </h4>
+        <p>
+        Waist: {{row.0}}<br/>
+        Neck: {{row.1}}<br/>
+        Torso: {{row.2}}<br/>
+        Leg: {{row.3}}<br/> 
+        </p>
+      {% endfor %}
+  </br>
+
+  <h4>Insert new dimensions: </h4>
+  <form action="/insert_dim/" method="GET">
+  Waist size (inches): <input name="waist"/><br/>
+  Neck size  (inches): <input name="neck"/><br/>
+  Torso size (inches): <input name="torso"/><br/>
+  Leg length (inches): <input name="leg"/><br/>
+    <input type="submit"/>
+  </form>
+
+  <a href="/menu">Back to menu</a>
+
+  </body>
+</html>

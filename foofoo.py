@@ -148,6 +148,60 @@ def loginfunction():
   else:
     return render_template("index.html", HEADER="Incorrect username/password")
 
+@check_login
+@app.route("/logout/", methods=["POST","GET"])
+def log_out():
+  user_id = session.get('username')
+  session.pop(user_id, None)
+  return render_template("index.html", HEADER="Successfully Logged out")
+
+def return_uid():
+  username = session.get('username')
+  q = "SELECT u_id FROM user_account WHERE username = %s LIMIT 1"
+  cursor = g.conn.execute(q,(username,))
+  row = cursor.fetchone()
+  return int(row[0])
+  
+
+@check_login
+@app.route("/dimensions/", methods=["POST","GET"])
+def list_dimensions():
+   user_id = session.get('username')
+   u_id = return_uid()
+   q = "SELECT waist, neck, torso, leglength FROM dimensions NATURAL JOIN has_dim WHERE u_id = %s"
+   cursor = g.conn.execute(q, (u_id,))
+   if not cursor:
+      return render_template("dimensions.html", USER=user_id)
+   else:
+      return render_template("dimensions.html", rows=cursor, USER=user_id)
+
+@check_login
+@app.route("/insert_dim/", methods=["GET"])
+def insert_dimensions():
+  print request.args
+  print "\n"
+
+  waist = request.args["waist"]
+  neck = request.args["neck"]
+  torso = request.args["torso"]
+  leg = request.args["leg"]
+
+  q = "INSERT INTO Dimensions(waist, neck, torso, leglength) VALUES (%s, %s, %s, %s) RETURNING d_id"
+  cursor = g.conn.execute(q, (waist, neck, torso, leg)) 
+  d_id = cursor.fetchone()[0]
+
+  user_id = session.get('username')
+  u_id = return_uid()
+
+  q = "INSERT INTO has_dim(u_id, d_id) VALUES (%s, %s)"
+  cursor = g.conn.execute(q, (u_id, d_id))
+  q = "SELECT waist, neck, torso, leglength FROM dimensions NATURAL JOIN has_dim WHERE u_id = %s"
+  cursor = g.conn.execute(q, (u_id,))
+  if not cursor:
+     return render_template("dimensions.html", USER=user_id)
+  else:
+     return render_template("dimensions.html", rows=cursor, USER=user_id)
+
 @app.route("/register/", methods=["POST","GET"])
 def register():
   return render_template("register.html")
