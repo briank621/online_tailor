@@ -1,0 +1,72 @@
+<html>
+  <body>
+
+  <h1>{{HEADER}}</h1>
+  <h1><a href="/menu"> Welcome to Online_Tailor {{USER}}</a>  </h1>
+  <h2>Checkout Page </h2>
+ 
+  <h3> Please confirm your order </h3>
+  {% for row in PRODUCT %}
+  <p>
+  Type: {{row.0}} </br>
+  Quantity: {{row.5}} </br>
+  Fabric: {{row.3}} </br>
+  Color: {{row.2}} </br>
+  Price: ${{row.1}} </br>
+  Dimension ID: {{row.4}} </br>
+  </p>
+  {% endfor %}
+  <h4> TOTAL: ${{PRICE}} </h4>
+
+  <h3> Pick your Credit Card and Mailing Address </h3>
+
+    {% for row in ADD_LIST %}
+      <h3>Address {{loop.index}} </h3>
+      <form name="select" action="/confirm/" method="POST">
+      <p>
+        <input type="checkbox" name="address" value="{{row.0}}">
+        Street: {{row.1}} </br>
+        Zip: {{row.2}}  </br>
+        State: {{row.3}} </br>
+        City: {{row.4}} </br>
+        Country: {{row.5}} </br>
+      </p>
+    {% endfor %}
+
+    {% for row in CARD_LIST %}
+      <h3>Credit Card {{loop.index}} </h3>
+      <input type="checkbox" name="cc" value="{{row.0}}">
+      <p>
+        Name: {{row.1}} </br>
+        EXP: {{row.2}}  </br>
+        Credit Card Number: {{row.3}} </br>
+        Security: {{row.4}} </br>
+      </p>
+    {% endfor %}
+    <input type="hidden" name="num_items" value={{NUM}}>
+    <input type="hidden" name="c_id" value={{C_ID}}>
+    <input type="hidden" name="price" value={{PRICE}}>
+  <input type="submit" value="Place Order">
+  </form>
+
+  <h3> Enter New Card of Address </h3>
+   <form action="/update_account_addr/">
+     <h4> Enter new Address </h4>
+     Street: <input name="street"/></br>
+     Zip:  <input name="zip"/></br>
+     State (Abbreviation): <input name="state"/></br>
+     City: <input name="city"/></br>
+     Country: <input name="country"/></br>
+   <input type ="submit" value="Enter Address"/>
+   </form>
+     <h4> Enter new Credit Card </h4>
+   <form action="/update_account_card/">
+    Name: <input name="Name"/></br>
+     Expiration Date: <input name="Exp"></br>
+     Credit Card #: <input name="Ccn"/></br>
+     Security: <input name="Sec"/></br>
+     <input type="submit" value="Enter Credit Card"/>
+   </form>
+
+  </body>
+</html>

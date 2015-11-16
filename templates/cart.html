@@ -1,0 +1,33 @@
+<html>
+  <body>
+
+  <h1><a href="/menu">Online_Tailor</a></h1>
+  <h2>Welcome {{USER}}  </h2>
+  <h3>{{HEADER}}</h3>
+  <h3>Cart </h3>
+
+      {% for row in PRODUCT %}
+       <p>
+          Type: {{row.0}} </br>
+          Quantity: {{row.5}} </br>
+          Fabric: {{row.3}} </br>
+          Color: {{row.2}} </br>
+          Price: ${{row.1}} </br>
+          Dimension ID: {{row.4}} </br>
+      </p>
+       {% endfor %}
+
+       <h4> TOTAL: ${{PRICE}} </h4>
+  </br>
+
+  <form name ="select" action=/checkout/ method="POST">
+  <input type="hidden" name="cart_id" value={{C_ID}}>
+  <input type="hidden" name="price" value={{PRICE}}>
+  <input type="hidden" name="num" value={{NUM}}>
+  <input type="submit" value="Proceed to Checkout"/>
+</form>
+
+  <a href="/menu">Back to menu</a>
+
+  </body>
+</html>

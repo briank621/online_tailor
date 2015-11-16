@@ -1,0 +1,35 @@
+<html>
+  <body>
+
+  <h1><a href="/menu">Online_Tailor</a></h1>
+  <h2>Welcome {{USER}}  </h2>
+  <h3>Orders </h3>
+
+  <h4>Here are your previous orders</h4>
+
+  {% for o in ORDER %}
+  <h5> Order # {{o.1}} </h5>
+    <p>
+     Price: ${{o.3}} </br>
+    Number of Items: {{o.2}} </br> 
+    </p>
+    {%for row in o.0%}
+       <p>
+          Type: {{row.0}} </br>
+          Quantity: {{row.4}} </br>
+          Fabric: {{row.3}} </br>
+          Color: {{row.2}} </br>
+          Price: ${{row.1}} </br>
+       </p> 
+       {% endfor %}
+
+  {% endfor %}
+  </br>
+
+  <input type="submit"/>
+  </form>
+
+  <a href="/menu">Back to menu</a>
+
+  </body>
+</html>

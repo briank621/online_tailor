@@ -1,0 +1,58 @@
+<html>
+  <body>
+
+  <h1><a href="/menu">Online_Tailor</a></h1>
+  <h2>Welcome {{USER}}  </h2>
+  <h3>Products </h3>
+
+  <h4>Here are the products that match your specifications</h4>
+  <h4>Select products to add to cart </h4>
+
+      <form name="select" action=/add_cart/ method="POST">
+      {% for row in SUITS  %}
+        <h4>Suit {{loop.index}}</h4>
+        <input type="checkbox" name="suit" value="suit {{row.0}} {{DIM}}">
+       <p>
+          Fabric: {{row.3}} </br>
+          Color: {{row.2}} </br>
+          Price: ${{row.1}} </br>
+       </p>
+       {% endfor %}
+      {% for row in BLAZERS  %} 
+        <h4>Blazer {{loop.index}}</h4>
+        <input type="checkbox" name="blazer" value="blazer {{row.0}} {{DIM}}">
+       <p>
+          Fabric: {{row.3}} </br>
+          Color: {{row.2}} </br>
+          Price: ${{row.1}} </br>
+       </p> 
+       {% endfor %}
+      {% for row in SHIRTS  %} 
+        <h4>Shirts {{loop.index}}</h4>
+        <input type="checkbox" name="shirt" value="shirt {{row.0}} {{DIM}}">
+       <p>
+          Fabric: {{row.3}} </br>
+          Color: {{row.2}} </br>
+          Price: ${{row.1}} </br>
+       </p> 
+       {% endfor %}
+      {% for row in PANTS  %} 
+        <h4>Pants {{loop.index}}</h4>
+        <input type="checkbox" name="pant" value="pant {{row.0}} {{DIM}}">
+       <p>
+          Fabric: {{row.3}} </br>
+          Color: {{row.2}} </br>
+          Price: ${{row.1}} </br>
+       </p> 
+       {% endfor %}
+
+       
+  </br>
+
+  <input type="submit"/>
+  </form>
+
+  <a href="/menu">Back to menu</a>
+
+  </body>
+</html>

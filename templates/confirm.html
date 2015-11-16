@@ -1,0 +1,45 @@
+<html>
+  <body>
+
+  <h1>{{HEADER}}</h1>
+  <h1><a href="/menu"> Welcome to Online_Tailor {{USER}}</a>  </h1>
+  <h2>Confirmation Page </h2>
+ 
+  <h3> Here is your receipt </h3>
+  <h3> Order # {{ORDER}} </h3>
+  <p>
+  Number of items: {{NUM}} </br>
+  Total Price: {{PRICE}} </br>
+
+  <h3>Shipped to Address below </h3>
+      <p>
+        Street: {{ADD.1}} </br>
+        Zip: {{ADD.2}}  </br>
+        State: {{ADD.3}} </br>
+        City: {{ADD.4}} </br>
+        Country: {{ADD.5}} </br>
+      </p>
+  <h3>Paid with Credit Card </h3>
+      <p>
+        Name: {{CARD.1}} </br>
+        EXP: {{CARD.2}}  </br>
+        Credit Card Number: {{CARD.3}} </br>
+        Security: {{CARD.4}} </br>
+      </p>
+
+  <h3> Items </h3>
+  {% for row in PRODUCT %}
+  <p>
+  Type: {{row.0}} </br>
+  Quantity: {{row.5}} </br>
+  Fabric: {{row.3}} </br>
+  Color: {{row.2}} </br>
+  Price: ${{row.1}} </br>
+  Dimension ID: {{row.4}} </br>
+  </p>
+  {% endfor %}
+  
+  <h3><a href="/menu"> Return to Menu </a>  </h3>
+
+  </body>
+</html>

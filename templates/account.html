@@ -1,0 +1,46 @@
+<html>
+  <body>
+
+  <h1>{{HEADER}}</h1>
+  <h1><a href="/menu"> Welcome to Online_Tailor {{USER}}</a>  </h1>
+  <h2>Edit Account Settings </h2>
+    {% for row in ADD_LIST %}
+      <h3>Address {{loop.index}} </h3>
+      <p>
+        Street: {{row.1}} </br>
+        Zip: {{row.2}}  </br>
+        State: {{row.3}} </br>
+        City: {{row.4}} </br>
+        Country: {{row.5}} </br>
+      </p>
+    {% endfor %}
+
+    {% for row in CARD_LIST %}
+      <h3>Credit Card {{loop.index}} </h3>
+      <p>
+        Name: {{row.1}} </br>
+        EXP: {{row.2}}  </br>
+        Credit Card Number: {{row.3}} </br>
+        Security: {{row.4}} </br>
+      </p>
+    {% endfor %}
+
+  <form action="/update_account_addr/">
+    <h4> Enter new Address </h4>
+    Street: <input name="street"/></br>
+    Zip:  <input name="zip"/></br>
+    State (Abbreviation): <input name="state"/></br>
+    City: <input name="city"/></br>
+    Country: <input name="country"/></br>
+  <input type ="submit" value="Enter Address"/>
+  </form>
+    <h4> Enter new Credit Card </h4>
+  <form action="/update_account_card/">
+    Name: <input name="Name"/></br>
+    Expiration Date: <input name="Exp"></br>
+    Credit Card #: <input name="Ccn"/></br>
+    Security: <input name="Sec"/></br>
+    <input type="submit" value="Enter Credit Card"/>
+  </form>
+  </body>
+</html>

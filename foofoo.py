@@ -164,6 +164,67 @@ def return_uid():
   
 
 @check_login
+@app.route("/select_product/", methods=["GET","POST"])
+def select_typeofprod():
+  print request
+  print "\n"
+
+  dim_list = request.form["dim"].split(" ")
+  waist = dim_list[0]
+  neck = dim_list[1]
+  torso = dim_list[2]
+  leg = dim_list[3]
+  dim = dim_list[4]
+  print str(dim_list)
+
+  products = request.form.getlist("product")
+  suit_lst = []
+  blazer_lst = []
+  shirts_lst = []
+  pants_lst = []
+  for p in products:
+    if(p == "suits"):
+      q = "SELECT * FROM Products P NATURAL JOIN Suits S NATURAL JOIN contains_product CP"
+      cursor = g.conn.execute(q)
+      for row in cursor:
+        suit_lst.append(row)
+    if(p == "blazers"):
+      q = "SELECT * FROM Products P NATURAL JOIN Blazers B NATURAL JOIN contains_product CP"
+      cursor = g.conn.execute(q)
+      for row in cursor:
+        blazer_lst.append(row)
+    if(p == "shirts"):
+      q = "SELECT * FROM Products P NATURAL JOIN Shirts S NATURAL JOIN contains_product CP"
+      cursor = g.conn.execute(q)
+      for row in cursor:
+        shirts_lst.append(row)
+    if(p == "pants"):
+      q = "SELECT * FROM Products P NATURAL JOIN Pants Pa NATURAL JOIN contains_product CP"
+      cursor = g.conn.execute(q)
+      for row in cursor:
+        pants_lst.append(row)
+  user_id = session.get('username')
+  u_id = return_uid()
+  return render_template("display_prod.html", USER=user_id, SUITS=suit_lst, BLAZERS=blazer_lst, SHIRTS=shirts_lst, PANTS=pants_lst, DIM=dim)
+
+
+@check_login
+@app.route("/products/", methods=["GET"])
+def pick_product():
+  print request.args
+  print "\n"
+
+  user_id = session.get('username')
+  u_id = return_uid()
+  q = "SELECT waist, neck, torso, leglength, d_id FROM dimensions NATURAL JOIN has_dim WHERE u_id = %s"
+  cursor = g.conn.execute(q, (u_id,))
+  if not cursor:
+     return render_template("products.html", USER=user_id)
+  else:
+     return render_template("products.html", d_rows=cursor, USER=user_id)
+
+
+@check_login
 @app.route("/dimensions/", methods=["POST","GET"])
 def list_dimensions():
    user_id = session.get('username')
@@ -205,6 +266,326 @@ def insert_dimensions():
 @app.route("/register/", methods=["POST","GET"])
 def register():
   return render_template("register.html")
+
+@check_login
+@app.route("/update_account_addr/", methods=["POST","GET"])
+def update_acc_addr():
+  print request.args
+  print "\n"
+
+  user_id = session.get('username')
+  u_id = return_uid()
+
+  street = request.args['street']
+  zip_code = request.args['zip']
+  state = request.args['state']
+  city = request.args['city']
+  country = request.args['country']
+
+  q = "INSERT INTO address(street, zip, state, city, country) VALUES (%s, %s, %s, %s, %s) RETURNING a_id"
+  cursor = g.conn.execute(q, (street, zip_code, state, city, country))
+  a_id = cursor.fetchone()[0]
+
+  q = "INSERT INTO has_add(u_id, a_id) VALUES (%s, %s)"
+  cursor = g.conn.execute(q, (u_id, a_id))
+
+  q = "SELECT * FROM Address A NATURAL JOIN has_add H WHERE u_id = %s"
+  cursor = g.conn.execute(q, u_id)
+  add = []
+  for row in cursor:
+    add.append(row)
+
+  q = "SELECT * FROM CreditCards C NATURAL JOIN has_cc H WHERE u_id = %s"
+  cursor = g.conn.execute(q, u_id)
+  card = []
+  for row in cursor:
+    card.append(row)
+
+  return render_template("account.html", USER=user_id, ADD_LIST=add, CARD_LIST=card)
+
+@check_login
+@app.route("/orders/", methods=["POST", "GET"])
+def order():
+  print request.form
+  print "\n"
+
+  user_id = session.get('username')
+  u_id = return_uid()
+
+  q = "SELECT order_id, num_items, price FROM Orders WHERE u_id = %s"
+  cursor = g.conn.execute(q, (u_id))
+  l = []
+  for row in cursor:
+    order_id = row[0]
+    q1 = "SELECT p_id FROM order_shows_products WHERE order_id = %s"
+    cursor1 = g.conn.execute(q1, (order_id))
+    prods = []
+    for p in cursor1:
+      print str(p)
+      p_id = p[0]
+      q2 = "SELECT type, price, color, fabric, qty FROM Products P NATURAL JOIN order_shows_products O WHERE p_id = %s AND O.order_id = %s"
+      cursor2 = g.conn.execute(q2, (p_id, order_id))
+      for desc in cursor2:
+        prods.append(desc)
+    num_items = row[1]
+    price = row[2]
+    l.append((prods, order_id, num_items, price))
+ 
+  print str(l)
+
+  return render_template("view_orders.html", ORDER=l);
+  
+
+@check_login
+@app.route("/confirm/", methods=["POST", "GET"])
+def confirm():
+  print request.form
+  print "\n"
+
+  user_id = session.get('username')
+  u_id = return_uid()
+
+  cart_id = request.form.get('c_id')
+  total = request.form.get('price')
+  num_items = request.form.get('num_items')
+  cc_id = request.form.get('cc')
+  a_id = request.form.get('address')
+
+  q = "INSERT INTO Orders(num_items, price, u_id) VALUES (%s, %s, %s) RETURNING order_id"
+  cursor = g.conn.execute(q, (num_items, total,u_id))
+  order_id = cursor.fetchone()[0]
+  q = "INSERT INTO checked_out(cart_id, order_id) VALUES (%s, %s)"
+  cursor = g.conn.execute(q, (cart_id, order_id))
+  q = "SELECT p_id, qty from cart_has_products C WHERE C.cart_id = %s"
+  cursor = g.conn.execute(q, (cart_id))
+  for row in cursor:
+    p_id = row[0]
+    qty = row[1]
+    q = "INSERT INTO order_shows_products(order_id, p_id, qty) VALUES (%s, %s, %s)"
+    cursor = g.conn.execute(q, (order_id, p_id, qty))
+  q = "INSERT INTO Payments(u_id, cc_id) VALUES (%s, %s) RETURNING pay_id"
+  cursor = g.conn.execute(q, (u_id, cc_id))
+  pay_id = cursor.fetchone()[0]
+  q = "INSERT INTO pay_for_order(pay_id, u_id, order_id) VALUES (%s, %s, %s)"
+  cursor = g.conn.execute(q, (pay_id, u_id, order_id))
+  
+  q = "SELECT * FROM Address A NATURAL JOIN has_add H WHERE u_id = %s AND A.a_id = %s"
+  cursor = g.conn.execute(q, (u_id, a_id))
+  add = cursor.fetchone()
+
+  q = "SELECT * FROM CreditCards C NATURAL JOIN has_cc H WHERE u_id = %s AND C.cc_id = %s"
+  cursor = g.conn.execute(q, (u_id, cc_id))
+  card = cursor.fetchone()
+
+  print add
+  print card
+
+  q = "SELECT type, price, color, fabric, dim, qty FROM cart_has_products C NATURAL JOIN products P WHERE C.cart_id = %s"
+  cursor = g.conn.execute(q, (cart_id,))
+  l = []
+  for row in cursor:
+    l.append(row)
+    print "row: " + str(row)
+  return render_template("confirm.html", PRODUCT=l, ORDER=order_id, PRICE=total, NUM=num_items, ADD=add, CARD=card)
+
+
+@check_login
+@app.route("/checkout/", methods=["POST", "GET"])
+def check_out(): 
+  print request.form
+  print "\n"
+
+  user_id = session.get('username')
+  u_id = return_uid()
+  cart_id = request.form.get('cart_id')
+  total = request.form.get('price')
+  num_items = request.form.get('num')
+
+  q = "SELECT * FROM Address A NATURAL JOIN has_add H WHERE u_id = %s"
+  cursor = g.conn.execute(q, u_id)
+  add = []
+  for row in cursor:
+    add.append(row)
+
+  q = "SELECT * FROM CreditCards C NATURAL JOIN has_cc H WHERE u_id = %s"
+  cursor = g.conn.execute(q, u_id)
+  card = []
+  for row in cursor:
+    card.append(row)
+
+  q = "SELECT type, price, color, fabric, dim, qty FROM cart_has_products C NATURAL JOIN products P WHERE C.cart_id = %s"
+  cursor = g.conn.execute(q, (cart_id,))
+
+  l = []
+  for row in cursor:
+    l.append(row)
+    print "row: " + str(row)
+  return render_template("checkout.html", NUM=num_items, PRODUCT=l, C_ID=cart_id, PRICE=total, USER=user_id, ADD_LIST=add, CARD_LIST=card)
+
+@check_login
+@app.route("/add_cart/", methods=["POST", "GET"])
+def add_cart(): 
+  print request.form
+  print "\n"
+
+  user_id = session.get('username')
+  u_id = return_uid()
+
+  #check if user has existing cart
+  q = "SELECT C.cart_id FROM cart_has_user C WHERE C.u_id = %s EXCEPT SELECT cart_id from checked_out"
+  cursor = g.conn.execute(q, (u_id,))
+  row = cursor.fetchone()
+  #if so, add to that cart
+  print "r: " + str(row)
+  if not row:
+    print 'creating cart'
+    q = "INSERT INTO cart(num_items, price) VALUES (0, 0) RETURNING cart_id"
+    cursor = g.conn.execute(q)
+    cart_id = cursor.fetchone()[0]
+    q = "INSERT INTO cart_has_user (cart_id, u_id) VALUES (%s, %s)"
+    cursor = g.conn.execute(q, (cart_id, u_id))
+  else:
+    print 'cart exists'
+    cart_id = row[0]
+  print "cart_id: " + str(cart_id)
+
+  suit = request.form.getlist("suit")
+  blazer = request.form.getlist("blazer")
+  pant = request.form.getlist("shirt")
+  shirt = request.form.getlist("pant")
+  for s in suit:
+    p_id = s.split(" ")[1]
+    dim = s.split(" ")[2]
+    q = "SELECT qty FROM cart_has_products WHERE p_id = %s AND cart_id = %s"
+    cursor = g.conn.execute(q, (p_id, cart_id ))
+    row = cursor.fetchone()
+    if row:
+      qty = row[0] + 1
+      q = "UPDATE cart_has_products SET qty = %s WHERE cart_id=%s AND p_id=%s"
+      cursor = g.conn.execute(q, (str(qty), cart_id, p_id, ))
+    else:
+      q = "INSERT INTO cart_has_products(cart_id, p_id, dim) VALUES (%s, %s, %s)"
+      cursor = g.conn.execute(q, (cart_id, p_id, dim))
+  for b in blazer:
+    p_id = b.split(" ")[1]
+    dim = b.split(" ")[2]
+    q = "SELECT qty FROM cart_has_products WHERE p_id = %s AND cart_id = %s"
+    cursor = g.conn.execute(q, (p_id, cart_id))
+    row = cursor.fetchone()
+    if row:
+      qty = row[0] + 1
+      q = "UPDATE cart_has_products SET qty = %s WHERE cart_id=%s AND p_id=%s"
+      cursor = g.conn.execute(q, (str(qty), cart_id, p_id, ))
+    else:
+      q = "INSERT INTO cart_has_products(cart_id, p_id, dim) VALUES (%s, %s, %s)"
+      cursor = g.conn.execute(q, (cart_id, p_id, dim))
+  for s in shirt:
+    p_id = s.split(" ")[1]
+    dim = s.split(" ")[2]
+    q = "SELECT qty FROM cart_has_products WHERE p_id = %s AND cart_id=%s"
+    cursor = g.conn.execute(q, (p_id, cart_id))
+    row = cursor.fetchone()
+    if row:
+      qty = row[0] + 1
+      q = "UPDATE cart_has_products SET qty = %s WHERE cart_id=%s AND p_id=%s"
+      cursor = g.conn.execute(q, (str(qty), cart_id, p_id, ))
+    else:
+      q = "INSERT INTO cart_has_products(cart_id, p_id, dim) VALUES (%s, %s, %s)"
+      cursor = g.conn.execute(q, (cart_id, p_id, dim))
+  for p in pant:
+    p_id = p.split(" ")[1]
+    dim = p.split(" ")[2]
+    q = "SELECT qty FROM cart_has_products WHERE p_id = %s AND cart_id = %s"
+    cursor = g.conn.execute(q, (p_id, cart_id))
+    row = cursor.fetchone()
+    if row:
+      qty = row[0] + 1
+      q = "UPDATE cart_has_products SET qty = %s WHERE cart_id=%s AND p_id=%s"
+      cursor = g.conn.execute(q, (str(qty), cart_id, p_id, ))
+    else:
+      q = "INSERT INTO cart_has_products(cart_id, p_id, dim) VALUES (%s, %s, %s)"
+      cursor = g.conn.execute(q, (cart_id, p_id, dim))
+  
+  q = "SELECT P.price, C.qty FROM Products P NATURAL JOIN cart_has_products C WHERE C.cart_id = %s" 
+  cursor = g.conn.execute(q, (cart_id,))
+  total = 0
+  num_items = 0
+  for row in cursor:
+    print "price: " + str(row[0]) + "\nqty: " + str(row[1])
+    total += row[0] * row[1]
+    num_items += row[1]
+  q = "UPDATE Cart  SET price = %s WHERE cart_id = %s"
+  cursor = g.conn.execute(q, (total, cart_id,))
+  q = "UPDATE Cart  SET num_items = %s WHERE cart_id = %s"
+  cursor = g.conn.execute(q, (num_items, cart_id,))
+
+  q = "SELECT type, price, color, fabric, dim, qty FROM cart_has_products C NATURAL JOIN products P WHERE C.cart_id = %s"
+  cursor = g.conn.execute(q, (cart_id,))
+
+  l = []
+  for row in cursor:
+    l.append(row)
+    print "row: " + str(row)
+  return render_template("cart.html", PRODUCT=l, C_ID=cart_id, PRICE=total, NUM=num_items )
+
+@check_login
+@app.route("/update_account_card/", methods=["POST","GET"])
+def update_acc_card():
+  print request.args
+  print "\n"
+
+  user_id = session.get('username')
+  u_id = return_uid()
+
+  name = request.args['Name']
+  exp = request.args['Exp']
+  ccn = request.args['Ccn']
+  sec = request.args['Sec']
+
+  print 'what'
+  q = "INSERT INTO Creditcards(name, exp, ccnum, sec) VALUES (%s, %s, %s, %s) RETURNING cc_id"
+  cursor = g.conn.execute(q, (name, exp, ccn, sec))
+  cc_id = cursor.fetchone()[0]
+
+  q = "INSERT INTO has_cc(u_id, cc_id) VALUES (%s, %s)"
+  cursor = g.conn.execute(q, (u_id, cc_id))
+
+  q = "SELECT * FROM Address A NATURAL JOIN has_add H WHERE u_id = %s"
+  cursor = g.conn.execute(q, u_id)
+  add = []
+  for row in cursor:
+    add.append(row)
+
+  q = "SELECT * FROM CreditCards C NATURAL JOIN has_cc H WHERE u_id = %s"
+  cursor = g.conn.execute(q, u_id)
+  card = []
+  for row in cursor:
+    card.append(row)
+
+  return render_template("account.html", USER=user_id, ADD_LIST=add, CARD_LIST=card)
+
+@check_login
+@app.route("/account/", methods=["POST","GET"])
+def acc_settings():
+  print request.args
+  print "\n"
+
+  user_id = session.get('username')
+  u_id = return_uid()
+
+  q = "SELECT * FROM Address A NATURAL JOIN has_add H WHERE u_id = %s"
+  cursor = g.conn.execute(q, u_id)
+  add = []
+  for row in cursor:
+    add.append(row)
+
+  q = "SELECT * FROM CreditCards C NATURAL JOIN has_cc H WHERE u_id = %s"
+  cursor = g.conn.execute(q, u_id)
+  card = []
+  for row in cursor:
+    card.append(row)
+
+  return render_template("account.html", USER=user_id, ADD_LIST=add, CARD_LIST=card)
 
 @app.route("/create-account/", methods=["POST","GET"])
 def createacc():
